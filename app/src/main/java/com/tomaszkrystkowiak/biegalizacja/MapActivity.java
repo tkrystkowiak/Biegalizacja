@@ -51,12 +51,15 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     private Polyline route;
     private GoogleApiClient googleApiClient;
     private Location mLastKnownLocation;
+    private Location penultimateLocation;
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private LocationCallback mLocationCallback;
     private boolean mLocationPermissionGranted;
     private Button startButton;
     private Stoper stoper;
     private TextView timeView;
+    private TextView distanceView;
+    private float distance;
     private Handler timerHandler = new Handler();
     long startTime = 0;
     private Runnable timerRunnable = new Runnable() {
@@ -95,6 +98,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     mLastKnownLocation = location;
                     Log.i(TAG, mLastKnownLocation.toString());
                     updateRoute();
+                    updateDistance();
                 }
             }
         };
@@ -108,6 +112,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         startButton = findViewById(R.id.startstop_button);
         startButton.setOnClickListener(new StartButtonClick());
         timeView = findViewById(R.id.time_view);
+        distanceView = findViewById(R.id.distance_view);
         stoper = new Stoper();
     }
 
@@ -290,6 +295,16 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         List<LatLng> points = route.getPoints();
         points.add(new LatLng(mLastKnownLocation.getLatitude(),mLastKnownLocation.getLongitude()));
         route.setPoints(points);
+    }
+
+    private void updateDistance() {
+        if(penultimateLocation != null){
+            float addedDistance = penultimateLocation.distanceTo(mLastKnownLocation);
+            distance =distance + addedDistance;
+            Log.i(TAG, "Distance: "+distance);
+            distanceView.setText(Math.round(distance)+"m");
+        }
+        penultimateLocation = mLastKnownLocation;
     }
 
     private class StartButtonClick implements View.OnClickListener{

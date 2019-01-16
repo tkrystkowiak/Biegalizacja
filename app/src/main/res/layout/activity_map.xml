@@ -12,18 +12,19 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/startstop_button"
+        <TextView
+            android:id="@+id/distance_view"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:text="@string/button_start"
-            tools:layout_editor_absoluteY="511dp" />
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="@string/distance_deafult"
+            android:textSize="36sp" />
 
         <TextView
             android:id="@+id/time_view"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="0.5"
             android:text="@string/time_deafult"
             android:textAlignment="center"
             android:textSize="36sp" />
@@ -36,18 +37,20 @@
         android:orientation="horizontal">
 
         <Button
+            android:id="@+id/startstop_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="@string/button_start"
+            tools:layout_editor_absoluteY="511dp" />
+
+        <Button
             android:id="@+id/pause_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="0.5"
             android:text="@string/button_pause" />
 
-        <Button
-            android:id="@+id/reset_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/button_reset" />
     </LinearLayout>
 
     <fragment xmlns:android="http://schemas.android.com/apk/res/android"
