@@ -3,6 +3,7 @@
     <string name="button_start">start</string>
     <string name="button_stop">stop</string>
     <string name="button_pause">pause</string>
+    <string name="button_resume">resume</string>
     <string name="button_reset">reset</string>
     <string name="time_deafult">00:00</string>
     <string name="distance_deafult">0m</string>

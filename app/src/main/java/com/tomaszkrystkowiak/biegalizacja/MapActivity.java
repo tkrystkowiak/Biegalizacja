@@ -4,10 +4,8 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
-import android.location.LocationListener;
 import android.os.Handler;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -18,8 +16,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -30,18 +26,14 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-public class MapActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener {
+public class MapActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private static final String TAG = "MapActivity";
     private final static int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
@@ -49,24 +41,27 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     private GoogleMap mMap;
     private Polyline route;
-    private GoogleApiClient googleApiClient;
     private Location mLastKnownLocation;
     private Location penultimateLocation;
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private LocationCallback mLocationCallback;
     private boolean mLocationPermissionGranted;
+    private boolean isMeasuring = false;
     private Button startButton;
-    private Stoper stoper;
+    private Button pauseButton;
     private TextView timeView;
     private TextView distanceView;
     private float distance;
     private Handler timerHandler = new Handler();
-    long startTime = 0;
+    private long startTime;
+    private long pauseTime;
+    private long resumeTime;
+    private long pausedTime;
     private Runnable timerRunnable = new Runnable() {
 
         @Override
         public void run() {
-            long millis = System.currentTimeMillis() - startTime;
+            long millis = System.currentTimeMillis() - (startTime + pausedTime);
             int seconds = (int) (millis / 1000);
             int minutes = seconds / 60;
             seconds = seconds % 60;
@@ -102,29 +97,14 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 }
             }
         };
-        if (googleApiClient == null) {
-            googleApiClient = new GoogleApiClient.Builder(this)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
-        }
         startButton = findViewById(R.id.startstop_button);
         startButton.setOnClickListener(new StartButtonClick());
+        pauseButton = findViewById(R.id.pause_button);
+        pauseButton.setOnClickListener(new PauseButtonClick());
         timeView = findViewById(R.id.time_view);
         distanceView = findViewById(R.id.distance_view);
-        stoper = new Stoper();
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -138,21 +118,12 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             return;
         }
         Log.d(TAG, "Permissions granted proceeding.");
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
         mMap.setMyLocationEnabled(true);
         mMap.getUiSettings().setMyLocationButtonEnabled(true);
         getDeviceLocation();
-        updateLocationUI();
     }
 
     private void getLocationPermission() {
-        /*
-         * Request location permission, so that we can get the location of the
-         * device. The result of the permission request is handled by a callback,
-         * onRequestPermissionsResult.
-         */
         if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
                 android.Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -181,10 +152,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     private void getDeviceLocation() {
-        /*
-         * Get the best and most recent location of the device, which may be null in rare
-         * cases when a location is not available.
-         */
+
         try {
             if (mLocationPermissionGranted) {
                 Task locationResult = mFusedLocationProviderClient.getLastLocation();
@@ -197,7 +165,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                             mLastKnownLocation = (Location) task.getResult();
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                     new LatLng(mLastKnownLocation.getLatitude(),
-                                            mLastKnownLocation.getLongitude()), 15));
+                                            mLastKnownLocation.getLongitude()), 17));
                         } else {
                             Log.d(TAG, "Current location is null. Using defaults.");
                             Log.e(TAG, "Exception: %s", task.getException());
@@ -210,63 +178,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         } catch(SecurityException e)  {
             Log.e("Exception: %s", e.getMessage());
         }
-    }
-
-    private void updateLocationUI() {
-        if (mMap == null) {
-            return;
-        }
-        try {
-            if (mLocationPermissionGranted) {
-                mMap.setMyLocationEnabled(true);
-                mMap.getUiSettings().setMyLocationButtonEnabled(true);
-            } else {
-                mMap.setMyLocationEnabled(false);
-                mMap.getUiSettings().setMyLocationButtonEnabled(false);
-                mLastKnownLocation = null;
-                getLocationPermission();
-            }
-        } catch (SecurityException e)  {
-            Log.e("Exception: %s", e.getMessage());
-        }
-    }
-
-    @Override
-    protected void onStart() {
-        googleApiClient.connect();
-        super.onStart();
-    }
-
-    @Override
-    protected void onStop() {
-        googleApiClient.disconnect();
-        super.onStop();
-    }
-
-    @Override
-    protected void onPause() {
-        stopLocationUpdates();
-        super.onPause();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-    }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        startLocationUpdates();
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
     }
 
     private void stopLocationUpdates() {
@@ -312,13 +223,37 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         @Override
         public void onClick(View v) {
             if(startButton.getText().equals("start")) {
+                isMeasuring = true;
+                startLocationUpdates();
                 startTime = System.currentTimeMillis();
                 timerHandler.postDelayed(timerRunnable, 0);
                 startButton.setText(R.string.button_stop);
             }
             else{
+                isMeasuring = false;
+                stopLocationUpdates();
                 timerHandler.removeCallbacks(timerRunnable);
                 startButton.setText(R.string.button_start);
+            }
+        }
+    }
+
+    private class PauseButtonClick implements View.OnClickListener{
+
+        @Override
+        public void onClick(View v) {
+            if(pauseButton.getText().equals("pause")) {
+                pauseTime = System.currentTimeMillis();
+                stopLocationUpdates();
+                timerHandler.removeCallbacks(timerRunnable);
+                pauseButton.setText(R.string.button_resume);
+            }
+            else{
+                resumeTime = System.currentTimeMillis();
+                pausedTime = pausedTime + resumeTime - pauseTime;
+                startLocationUpdates();
+                timerHandler.postDelayed(timerRunnable, 0);
+                pauseButton.setText(R.string.button_pause);
             }
         }
     }
