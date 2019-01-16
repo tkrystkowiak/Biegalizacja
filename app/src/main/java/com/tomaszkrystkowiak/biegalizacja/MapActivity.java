@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -12,6 +13,9 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -45,19 +49,36 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     private GoogleMap mMap;
     private Polyline route;
-    private SupportMapFragment mapFragment;
     private GoogleApiClient googleApiClient;
     private Location mLastKnownLocation;
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private LocationCallback mLocationCallback;
     private boolean mLocationPermissionGranted;
+    private Button startButton;
+    private Stoper stoper;
+    private TextView timeView;
+    private Handler timerHandler = new Handler();
+    long startTime = 0;
+    private Runnable timerRunnable = new Runnable() {
+
+        @Override
+        public void run() {
+            long millis = System.currentTimeMillis() - startTime;
+            int seconds = (int) (millis / 1000);
+            int minutes = seconds / 60;
+            seconds = seconds % 60;
+
+            timeView.setText(String.format("%d:%02d", minutes, seconds));
+
+            timerHandler.postDelayed(this, 500);
+        }
+    };
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -77,7 +98,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 }
             }
         };
-
         if (googleApiClient == null) {
             googleApiClient = new GoogleApiClient.Builder(this)
                     .addConnectionCallbacks(this)
@@ -85,10 +105,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     .addApi(LocationServices.API)
                     .build();
         }
+        startButton = findViewById(R.id.startstop_button);
+        startButton.setOnClickListener(new StartButtonClick());
+        timeView = findViewById(R.id.time_view);
+        stoper = new Stoper();
     }
-
-
-
 
     /**
      * Manipulates the map once available.
@@ -111,6 +132,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ) {
             return;
         }
+        Log.d(TAG, "Permissions granted proceeding.");
+        LatLng sydney = new LatLng(-34, 151);
+        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
         mMap.setMyLocationEnabled(true);
         mMap.getUiSettings().setMyLocationButtonEnabled(true);
         getDeviceLocation();
@@ -163,6 +188,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     public void onComplete(@NonNull Task task) {
                         if (task.isSuccessful()) {
                             // Set the map's camera position to the current location of the device.
+                            Log.d(TAG, "Location found. Showing current location");
                             mLastKnownLocation = (Location) task.getResult();
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                     new LatLng(mLastKnownLocation.getLatitude(),
@@ -221,9 +247,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     @Override
     public void onResume() {
         super.onResume();
-        if (googleApiClient.isConnected()) {
-            startLocationUpdates();
-        }
     }
 
     @Override
@@ -268,4 +291,21 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         points.add(new LatLng(mLastKnownLocation.getLatitude(),mLastKnownLocation.getLongitude()));
         route.setPoints(points);
     }
+
+    private class StartButtonClick implements View.OnClickListener{
+
+        @Override
+        public void onClick(View v) {
+            if(startButton.getText().equals("start")) {
+                startTime = System.currentTimeMillis();
+                timerHandler.postDelayed(timerRunnable, 0);
+                startButton.setText(R.string.button_stop);
+            }
+            else{
+                timerHandler.removeCallbacks(timerRunnable);
+                startButton.setText(R.string.button_start);
+            }
+        }
+    }
+
 }
