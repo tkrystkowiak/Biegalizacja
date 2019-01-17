@@ -1,6 +1,7 @@
 package com.tomaszkrystkowiak.biegalizacja;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
@@ -31,6 +32,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MapActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -57,16 +59,17 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     private long pauseTime;
     private long resumeTime;
     private long pausedTime;
+    private long totalTime;
     private Runnable timerRunnable = new Runnable() {
 
         @Override
         public void run() {
-            long millis = System.currentTimeMillis() - (startTime + pausedTime);
-            int seconds = (int) (millis / 1000);
+            totalTime = System.currentTimeMillis() - (startTime + pausedTime);
+            int seconds = (int) (totalTime / 1000);
             int minutes = seconds / 60;
             seconds = seconds % 60;
 
-            timeView.setText(String.format("%d:%02d", minutes, seconds));
+            timeView.setText(String.format("%02d:%02d", minutes, seconds));
 
             timerHandler.postDelayed(this, 500);
         }
@@ -218,6 +221,15 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         penultimateLocation = mLastKnownLocation;
     }
 
+    private void startSummaryActivity(){
+        ArrayList<LatLng> routePoints = new ArrayList<>();
+        Intent intent = new Intent(this, SummaryActivity.class);
+        intent.putExtra("distance",distance);
+        intent.putExtra("route", routePoints);
+        intent.putExtra("time",totalTime);
+        startActivity(intent);
+    }
+
     private class StartButtonClick implements View.OnClickListener{
 
         @Override
@@ -234,6 +246,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                 stopLocationUpdates();
                 timerHandler.removeCallbacks(timerRunnable);
                 startButton.setText(R.string.button_start);
+                startSummaryActivity();
             }
         }
     }
