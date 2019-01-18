@@ -33,6 +33,8 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 public class MapActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -60,6 +62,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     private long resumeTime;
     private long pausedTime;
     private long totalTime;
+    private Date startDate;
     private Runnable timerRunnable = new Runnable() {
 
         @Override
@@ -227,6 +230,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         intent.putExtra("distance",distance);
         intent.putExtra("route", routePoints);
         intent.putExtra("time",totalTime);
+        intent.putExtra("startDate", startDate);
         startActivity(intent);
     }
 
@@ -235,6 +239,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         @Override
         public void onClick(View v) {
             if(startButton.getText().equals("start")) {
+                Calendar calendar = Calendar.getInstance();
+                startDate = calendar.getTime();
                 isMeasuring = true;
                 startLocationUpdates();
                 startTime = System.currentTimeMillis();
