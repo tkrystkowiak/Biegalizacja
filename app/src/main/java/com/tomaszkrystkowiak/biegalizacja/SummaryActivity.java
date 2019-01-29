@@ -50,7 +50,7 @@ public class SummaryActivity extends Activity {
 
     private Route prepareRouteToSave(){
         Route routeToSave = new Route();
-        routeToSave.locations = getIntent().getParcelableArrayListExtra("route");
+        //routeToSave.locations = getIntent().getParcelableArrayListExtra("route");
         routeToSave.distance = getIntent().getFloatExtra("distance",0f);
         routeToSave.date = (Date) getIntent().getSerializableExtra("date");
         return routeToSave;

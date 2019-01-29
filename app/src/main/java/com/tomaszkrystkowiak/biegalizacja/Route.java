@@ -10,18 +10,18 @@ import java.util.Date;
 import java.util.ArrayList;
 
 @Entity
-public class Route {
+public class Route<date> {
 
     @PrimaryKey
     public int rid;
 
-    @ColumnInfo(name = "locations")
-    public ArrayList<LatLng> locations;
+    //@ColumnInfo(name = "locations")
+    //public ArrayList<LatLng> locations;
 
-    @ColumnInfo(name = "locations")
+    @ColumnInfo(name = "locations2")
     public float distance;
 
     @ColumnInfo(name = "date")
-    public Date date;
+    public date date;
 
 }
